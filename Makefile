@@ -1,22 +1,23 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -pthread
+
+CXXFLAGS = -Wall -Wextra -std=c++17 -pthread -Iinclude
+
+SRC_DIR = src
 
 TARGETS = dyrektor dostawca pracownik
 
 all: $(TARGETS)
 
-dyrektor: dyrektor.cpp common.h
-	$(CXX) $(CXXFLAGS) -o dyrektor dyrektor.cpp
+dyrektor: $(SRC_DIR)/dyrektor.cpp include/common.h
+	$(CXX) $(CXXFLAGS) -o dyrektor $(SRC_DIR)/dyrektor.cpp
 
-dostawca: dostawca.cpp common.h
-	$(CXX) $(CXXFLAGS) -o dostawca dostawca.cpp
+dostawca: $(SRC_DIR)/dostawca.cpp include/common.h
+	$(CXX) $(CXXFLAGS) -o dostawca $(SRC_DIR)/dostawca.cpp
 
-pracownik: pracownik.cpp common.h
-	$(CXX) $(CXXFLAGS) -o pracownik pracownik.cpp
+pracownik: $(SRC_DIR)/pracownik.cpp include/common.h
+	$(CXX) $(CXXFLAGS) -o pracownik $(SRC_DIR)/pracownik.cpp
 
 clean:
 	rm -f $(TARGETS) *.o raport.txt stan_magazynu.dat
 	rm -rf *.dSYM
-
-tar:
-	tar -cvzf projekt_systemy.tar.gz *.cpp *.h Makefile
+	
