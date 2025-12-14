@@ -5,6 +5,9 @@
 
 using namespace std;
 
+//zapis i odczyt
+//sygnaly do napisania
+
 pid_t pid_kierownik_dostaw = 0;
 
 void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
