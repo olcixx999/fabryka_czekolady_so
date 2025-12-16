@@ -58,6 +58,6 @@ int main() {
             cout << "RAPORT: " << msg.tekst << endl;
         }
     }
-
+    
     return 0;
 }
