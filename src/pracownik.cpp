@@ -30,9 +30,42 @@ int main(int argc, char* argv[]) {
 
     srand(time(nullptr) ^ getpid());
 
-    for(int i=0; i<3; i++) {
-        cout << "[PRACOWNIK " << typ << "] Widzę w magazynie A: " << magazyn->A << "\n";
-        sleep(1);
+    cout << "[PRACOWNIK " << typ << "] Zaczynam produkcję.\n";
+
+    while (true) {
+        sleep(rand() % 4 + 2); 
+
+        sem_lock(semid);
+
+        bool zrobione = false;
+
+        if (typ == 1) {
+            if (magazyn->A > 0 && magazyn->B > 0 && magazyn->C > 0) {
+                magazyn->A--; 
+                magazyn->B--; 
+                magazyn->C--;
+                magazyn->zajete_miejsce -= 4;
+                zrobione = true;
+            }
+        } 
+        else if (typ == 2) {
+            if (magazyn->A > 0 && magazyn->B > 0 && magazyn->D > 0) {
+                magazyn->A--; 
+                magazyn->B--; 
+                magazyn->D--;
+                magazyn->zajete_miejsce -= 5;
+                zrobione = true;
+            }
+        }
+
+        if (zrobione) {
+            Raport msg;
+            msg.mtype = 1;
+            sprintf(msg.tekst, "Pracownik %d zrobił czekoladę! Stan: %d", typ, magazyn->zajete_miejsce);
+            msgsnd(msgid, &msg, sizeof(msg.tekst), IPC_NOWAIT);
+        }
+
+        sem_unlock(semid);
     }
     
     shmdt(magazyn);
