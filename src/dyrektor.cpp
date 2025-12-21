@@ -9,17 +9,22 @@ using namespace std;
 //sygnaly do napisania
 
 pid_t pid_kierownik_dostaw = 0;
+pid_t pid_pracownik1 = 0;
+pid_t pid_pracownik2 = 0;
 
 void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
     cout << "\n[DYREKTOR] Sprzątanie fabryki..." << endl;
 
     if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGKILL);
+    if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGKILL);
+    if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGKILL);
     
     shmdt(mag);
     shmctl(shmid, IPC_RMID, nullptr);
     semctl(semid, 0, IPC_RMID);
     msgctl(msgid, IPC_RMID, nullptr);
 
+    cout << "[DYREKTOR] Koniec pracy.\n";
     exit(0);
 }
 
@@ -40,6 +45,7 @@ int main() {
     magazyn->A = 0; magazyn->B = 0; magazyn->C = 0; magazyn->D = 0;
     magazyn->zajete_miejsce = 0;
     magazyn->pojemnosc_max = POJEMNOSC_MAGAZYNU;
+    magazyn->fabryka_dziala = true;
 
     pid_kierownik_dostaw = fork();
     if (pid_kierownik_dostaw == 0) {
@@ -50,6 +56,22 @@ int main() {
 
     cout << "[DYREKTOR] Uruchomiono Kierownika Dostaw (PID: " << pid_kierownik_dostaw << ")" << endl;
     
+    pid_pracownik1 = fork();
+    if (pid_pracownik1 == 0) {
+        execl("./pracownik", "pracownik", "1", nullptr);
+        perror("Błąd execl pracownik 1");
+        exit(1);
+    }
+    cout << "[DYREKTOR] Uruchomiono Pracownika 1 (PID: " << pid_pracownik1 << ")" << endl;
+
+    pid_pracownik2 = fork();
+    if (pid_pracownik2 == 0) {
+        execl("./pracownik", "pracownik", "2", nullptr);
+        perror("Błąd execl pracownik 2");
+        exit(1);
+    }
+    cout << "[DYREKTOR] Uruchomiono Pracownika 2 (PID: " << pid_pracownik2 << ")" << endl;
+    
     cout << "[DYREKTOR] System działa. Nasłuchuję komunikatów (Ctrl+C aby przerwać)...\n";
     
     Raport msg;
@@ -59,5 +81,6 @@ int main() {
         }
     }
     
+    sprzatanie_i_wyjscie(shmid, semid, msgid, magazyn);
     return 0;
 }
