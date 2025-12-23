@@ -33,11 +33,18 @@ int main(int argc, char* argv[]) {
     cout << "[PRACOWNIK " << typ << "] Zaczynam produkcję.\n";
 
     while (true) {
+        if (!magazyn->fabryka_dziala) break;
+
         sleep(rand() % 4 + 2); 
 
         sem_lock(semid);
 
         bool zrobione = false;
+
+        bool mamA = magazyn->A > 0;
+        bool mamB = magazyn->B > 0;
+        bool mamC = magazyn->C > 0;
+        bool mamD = magazyn->D > 0;
 
         if (typ == 1) {
             if (magazyn->A > 0 && magazyn->B > 0 && magazyn->C > 0) {
@@ -46,6 +53,8 @@ int main(int argc, char* argv[]) {
                 magazyn->C--;
                 magazyn->zajete_miejsce -= 4;
                 zrobione = true;
+            } else {
+                printf("[P1] Stoję bo brak: %s%s%s\n", !mamA?"A ":"", !mamB?"B ":"", !mamC?"C":"");
             }
         } 
         else if (typ == 2) {
@@ -55,6 +64,8 @@ int main(int argc, char* argv[]) {
                 magazyn->D--;
                 magazyn->zajete_miejsce -= 5;
                 zrobione = true;
+            } else {
+                printf("[P2] Stoję bo brak: %s%s%s\n", !mamA?"A ":"", !mamB?"B ":"", !mamD?"D":"");
             }
         }
 

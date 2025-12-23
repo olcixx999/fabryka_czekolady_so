@@ -2,6 +2,8 @@
 #include <vector>
 #include <signal.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <time.h>
 
 using namespace std;
 
@@ -26,11 +28,42 @@ void proces_dostawcy(char typ) {
     printf("[DOSTAWCA %c] Gotowy do pracy (PID: %d, Rozmiar: %d)\n", typ, getpid(), rozmiar);
 
     while (true) {
-        sleep(rand() % 3 + 1);
+        if (!magazyn->fabryka_dziala) break;
+
+        sleep(rand() % 2 + 1);
 
         sem_lock(semid);
 
-        if (magazyn->zajete_miejsce + rozmiar <= magazyn->pojemnosc_max) {
+        int pojemnosc = magazyn->pojemnosc_max;
+        int max_sztuk = 0;
+        int obecna_ilosc = 0;
+
+        switch(typ) {
+            case 'A': 
+                max_sztuk = (int)(pojemnosc * 0.30); 
+                obecna_ilosc = magazyn->A; 
+                break;
+            case 'B': 
+                max_sztuk = (int)(pojemnosc * 0.30); 
+                obecna_ilosc = magazyn->B; 
+                break;
+            case 'C': 
+                max_sztuk = (int)((pojemnosc * 0.20) / 2); 
+                obecna_ilosc = magazyn->C; 
+                break;
+            case 'D': 
+                max_sztuk = (int)((pojemnosc * 0.15) / 3); 
+                obecna_ilosc = magazyn->D; 
+                break;
+        }
+
+        if (max_sztuk < 1) max_sztuk = 1;
+
+        bool jest_miejsce = (magazyn->zajete_miejsce + rozmiar <= magazyn->pojemnosc_max);
+        
+        bool limit_ok = (obecna_ilosc < max_sztuk);
+
+        if (jest_miejsce && limit_ok) {
             
             switch(typ) {
                 case 'A': magazyn->A++; break;
@@ -38,19 +71,17 @@ void proces_dostawcy(char typ) {
                 case 'C': magazyn->C++; break;
                 case 'D': magazyn->D++; break;
             }
+
             magazyn->zajete_miejsce += rozmiar;
 
             Raport msg;
             msg.mtype = 1;
-            sprintf(msg.tekst, "Dostawca %c dostarczył towar. Stan magazynu: %d/%d", 
+            sprintf(msg.tekst, "[DOSTAWDA %c] Dostarczono towar. Stan magazynu: %d/%d", 
                          typ, magazyn->zajete_miejsce, magazyn->pojemnosc_max);
 
             msgsnd(msgid, &msg, sizeof(msg.tekst), 0);
-            
-            printf("[DOSTAWCA %c] Dostarczono. Stan: %d\n", typ, magazyn->zajete_miejsce);
-            
         } else {
-            printf("Magazyn pełny");
+
         }
 
         sem_unlock(semid);
