@@ -27,6 +27,7 @@ struct Magazyn {
     int zajete_miejsce;
     int pojemnosc_max;
     bool fabryka_dziala;
+    bool dostawy_aktywne;
 };
 
 struct Raport {

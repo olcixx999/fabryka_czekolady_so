@@ -30,6 +30,11 @@ void proces_dostawcy(char typ) {
     while (true) {
         if (!magazyn->fabryka_dziala) break;
 
+        if (!magazyn->dostawy_aktywne){
+            printf("[DOSTAWCA %c] Otrzymano Polecenie 3. Konczę pracę.\n", typ);
+            break;
+        }
+        
         sleep(rand() % 2 + 1);
 
         sem_lock(semid);
@@ -90,15 +95,6 @@ void proces_dostawcy(char typ) {
 
 void handle_stop_signal(int sig) {
     (void)sig;
-    printf("[KIEROWNIK DOSTAW] Otrzymano sygnał STOP. Zwalniam dostawców...\n");
-    
-    for (pid_t pid : dzieci) {
-        kill(pid, SIGKILL);
-    }
-    
-    while (wait(NULL) > 0);
-    
-    exit(0);
 }
 
 int main() {
@@ -123,8 +119,10 @@ int main() {
     }
 
     while (true) {
-        pause();
+        int status;
+        if (wait(&status) == -1) break;
     }
 
+    printf("[KIEROWNIK DOSTAW] Wszyscy dostawcy zakończyli pracę.\n");
     return 0;
 }

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <csignal>
 #include <sys/wait.h>
+#include <thread>
 
 using namespace std;
 
@@ -11,8 +12,10 @@ using namespace std;
 pid_t pid_kierownik_dostaw = 0;
 pid_t pid_pracownik1 = 0;
 pid_t pid_pracownik2 = 0;
+bool system_dziala = true;
 
 void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
+    system_dziala = false;
     cout << "\n[DYREKTOR] Sprzątanie fabryki..." << endl;
 
     if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGKILL);
@@ -26,6 +29,15 @@ void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
 
     cout << "[DYREKTOR] Koniec pracy.\n";
     exit(0);
+}
+
+void obsluga_komunikatow(int msgid) {
+    Raport msg;
+    while(system_dziala) {
+        if (msgrcv(msgid, &msg, sizeof(msg.tekst), 0, 0) != -1) {
+            cout << "RAPORT: " << msg.tekst << endl;
+        }
+    }
 }
 
 int main() {
@@ -46,6 +58,7 @@ int main() {
     magazyn->zajete_miejsce = 0;
     magazyn->pojemnosc_max = POJEMNOSC_MAGAZYNU;
     magazyn->fabryka_dziala = true;
+    magazyn->dostawy_aktywne = true;
 
     pid_kierownik_dostaw = fork();
     if (pid_kierownik_dostaw == 0) {
@@ -72,13 +85,30 @@ int main() {
     }
     cout << "[DYREKTOR] Uruchomiono Pracownika 2 (PID: " << pid_pracownik2 << ")" << endl;
     
-    cout << "[DYREKTOR] System działa. Nasłuchuję komunikatów (Ctrl+C aby przerwać)...\n";
+    thread t_raporty(obsluga_komunikatow, msgid);
+    t_raporty.detach();
+
+    cout << "[DYREKTOR] System działa.\n";
+    cout << "--- MENU ---\n";
+    cout << "3 - Zatrzymaj dostawy\n";
+    cout << "0 - Wyjscie (Ctrl+C)\n";
+    cout << "------------\n";
     
-    Raport msg;
-    while(true) {
-        if (msgrcv(msgid, &msg, sizeof(msg.tekst), 0, 0) != -1) {
-            cout << "RAPORT: " << msg.tekst << endl;
+    int opcja;
+    while(cin >> opcja) {
+        if (opcja == 3) {
+            sem_lock(semid);
+            magazyn->dostawy_aktywne = false;
+            sem_unlock(semid);
+            cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 3: KONIEC DOSTAW <<<\n";
         }
+        else if (opcja == 0) {
+            break;
+        }
+        else {
+            cout << "Nieznana opcja.\n";
+        }
+        cout << "\nPodaj polecenie (3 lub 0): ";
     }
     
     sprzatanie_i_wyjscie(shmid, semid, msgid, magazyn);
