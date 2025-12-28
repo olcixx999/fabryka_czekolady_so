@@ -17,7 +17,7 @@ const int SHM_KEY = 0x1111;
 const int SEM_KEY = 0x2222;
 const int MSG_KEY = 0x3333;
 
-const int POJEMNOSC_MAGAZYNU = 30;
+const int POJEMNOSC_MAGAZYNU = 100;
 
 struct Magazyn {
     int A;
@@ -28,6 +28,7 @@ struct Magazyn {
     int pojemnosc_max;
     bool fabryka_dziala;
     bool dostawy_aktywne;
+    bool produkcja_aktywna;
 };
 
 struct Raport {

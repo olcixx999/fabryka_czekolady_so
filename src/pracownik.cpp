@@ -35,6 +35,11 @@ int main(int argc, char* argv[]) {
     while (true) {
         if (!magazyn->fabryka_dziala) break;
 
+        if (!magazyn->produkcja_aktywna) {
+            cout << "[PRACOWNIK " << typ << "] Otrzymano Polecenie 1. Konczę zmianę.\n";
+            break;
+        }
+
         sleep(rand() % 4 + 2); 
 
         sem_lock(semid);
