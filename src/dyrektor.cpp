@@ -18,11 +18,13 @@ void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
     system_dziala = false;
     cout << "\n[DYREKTOR] Sprzątanie fabryki..." << endl;
 
-    if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGKILL);
-    if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGKILL);
-    if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGKILL);
+    sleep(1);
+
+    if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGTERM);
+    if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGTERM);
+    if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGTERM);
     
-    wait(NULL); wait(NULL); wait(NULL);
+    while (wait(NULL) > 0);
     
     shmdt(mag);
     shmctl(shmid, IPC_RMID, nullptr);
@@ -97,6 +99,7 @@ int main() {
     cout << "1 - Zatrzymaj produkcje\n";
     cout << "2 - Zatrzymaj prace magazynu\n";
     cout << "3 - Zatrzymaj dostawy\n";
+    cout << "4 - Koniec pracy calej fabryki\n";
     cout << "0 - Wyjscie (Ctrl+C)\n";
     cout << "------------\n";
     
@@ -114,6 +117,13 @@ int main() {
         else if (opcja == 3) {
             magazyn->dostawy_aktywne = false;
             cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 3: KONIEC DOSTAW <<<\n";
+        }
+        else if (opcja == 4) {
+            magazyn->fabryka_dziala = false;
+            cout << "\n[DYREKTOR] >>> POLECENIE 4: KONIEC PRACY SYSTEMU <<<\n";
+            sem_unlock(semid);
+            sleep(1);
+            break;
         }
         else if (opcja == 0) {
             sem_unlock(semid);

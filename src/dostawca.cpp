@@ -28,7 +28,6 @@ void proces_dostawcy(char typ) {
     printf("[DOSTAWCA %c] Gotowy do pracy (PID: %d, Rozmiar: %d)\n", typ, getpid(), rozmiar);
 
     while (true) {
-        if (!magazyn->fabryka_dziala) break;
 
         if (!magazyn->magazyn_otwarty) {
             printf("[DOSTAWCA %c] Polecenie 2: Magazyn zamkniety. Koniec.\n", typ);
@@ -36,7 +35,12 @@ void proces_dostawcy(char typ) {
         }
 
         if (!magazyn->dostawy_aktywne){
-            printf("[DOSTAWCA %c] Otrzymano Polecenie 3. Konczę pracę.\n", typ);
+            printf("[DOSTAWCA %c] Polecenie 3. Konczę pracę.\n", typ);
+            break;
+        }
+
+        if (!magazyn->fabryka_dziala) {
+            printf("[DOSTAWCA %c] Polecenie 4: Koniec pracy fabryki.\n", typ);
             break;
         }
         

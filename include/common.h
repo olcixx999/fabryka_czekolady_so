@@ -51,7 +51,9 @@ inline void sem_lock(int semid){
     operacja.sem_flg = 0;
 
     if (semop(semid, &operacja, 1) == -1){
-        if (errno != EINTR) std::perror("Blad sem_lock");
+        if (errno != EINTR && errno != EIDRM && errno != EINVAL) {
+            std::perror("Blad sem_lock");
+        }
     }
 }
 
@@ -62,7 +64,9 @@ inline void sem_unlock(int semid){
     operacja.sem_flg = 0;
 
     if (semop(semid, &operacja, 1) == -1){
-        std::perror("Blad sem_unlock");
+        if (errno != EINTR && errno != EIDRM && errno != EINVAL) {
+            std::perror("Blad sem_unlock");
+        }
     }
 }
 
