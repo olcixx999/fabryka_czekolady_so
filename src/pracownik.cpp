@@ -35,6 +35,11 @@ int main(int argc, char* argv[]) {
     while (true) {
         if (!magazyn->fabryka_dziala) break;
 
+        if (!magazyn->magazyn_otwarty) {
+            cout << "[PRACOWNIK " << typ << "] Polecenie 2: Magazyn zamkniety. Koniec.\n";
+            break;
+        }
+
         if (!magazyn->produkcja_aktywna) {
             cout << "[PRACOWNIK " << typ << "] Otrzymano Polecenie 1. Konczę zmianę.\n";
             break;

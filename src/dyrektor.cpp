@@ -62,6 +62,7 @@ int main() {
     magazyn->fabryka_dziala = true;
     magazyn->dostawy_aktywne = true;
     magazyn->produkcja_aktywna = true;
+    magazyn->magazyn_otwarty = true;
 
     pid_kierownik_dostaw = fork();
     if (pid_kierownik_dostaw == 0) {
@@ -94,6 +95,7 @@ int main() {
     cout << "[DYREKTOR] System działa.\n";
     cout << "--- MENU ---\n";
     cout << "1 - Zatrzymaj produkcje\n";
+    cout << "2 - Zatrzymaj prace magazynu\n";
     cout << "3 - Zatrzymaj dostawy\n";
     cout << "0 - Wyjscie (Ctrl+C)\n";
     cout << "------------\n";
@@ -104,6 +106,10 @@ int main() {
         if (opcja == 1) {
             magazyn->produkcja_aktywna = false;
             cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 1: STOP PRODUKCJI <<<\n";
+        }
+        else if (opcja == 2) {
+            magazyn->magazyn_otwarty = false;
+            cout << "\n[DYREKTOR] >>> POLECENIE 2: ZAMKNIECIE MAGAZYNU <<<\n";
         }
         else if (opcja == 3) {
             magazyn->dostawy_aktywne = false;

@@ -29,6 +29,7 @@ struct Magazyn {
     bool fabryka_dziala;
     bool dostawy_aktywne;
     bool produkcja_aktywna;
+    bool magazyn_otwarty;
 };
 
 struct Raport {

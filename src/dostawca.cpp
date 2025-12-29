@@ -30,6 +30,11 @@ void proces_dostawcy(char typ) {
     while (true) {
         if (!magazyn->fabryka_dziala) break;
 
+        if (!magazyn->magazyn_otwarty) {
+            printf("[DOSTAWCA %c] Polecenie 2: Magazyn zamkniety. Koniec.\n", typ);
+            break;
+        }
+
         if (!magazyn->dostawy_aktywne){
             printf("[DOSTAWCA %c] Otrzymano Polecenie 3. Konczę pracę.\n", typ);
             break;
