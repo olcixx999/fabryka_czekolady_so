@@ -6,9 +6,6 @@
 
 using namespace std;
 
-//zapis i odczyt
-//sygnaly do napisania
-
 pid_t pid_kierownik_dostaw = 0;
 pid_t pid_pracownik1 = 0;
 pid_t pid_pracownik2 = 0;
@@ -58,9 +55,18 @@ int main() {
     int msgid = msgget(MSG_KEY, IPC_CREAT | 0666);
     sprawdz_blad(msgid, "msgget");
 
-    magazyn->A = 0; magazyn->B = 0; magazyn->C = 0; magazyn->D = 0;
-    magazyn->zajete_miejsce = 0;
-    magazyn->pojemnosc_max = POJEMNOSC_MAGAZYNU;
+    if (wczytaj_stan(magazyn)) {
+        cout << "[DYREKTOR] Wznowiono pracę z zapisanym stanem:\n";
+        cout << "   A: " << magazyn->A << ", B: " << magazyn->B 
+             << ", C: " << magazyn->C << ", D: " << magazyn->D 
+             << " | Zajęte: " << magazyn->zajete_miejsce << "/" << magazyn->pojemnosc_max << endl;
+    } else {
+        cout << "[DYREKTOR] Brak pliku zapisu. Inicjalizacja pustego magazynu.\n";
+        magazyn->A = 0; magazyn->B = 0; magazyn->C = 0; magazyn->D = 0;
+        magazyn->zajete_miejsce = 0;
+        magazyn->pojemnosc_max = POJEMNOSC_MAGAZYNU;
+    }
+
     magazyn->fabryka_dziala = true;
     magazyn->dostawy_aktywne = true;
     magazyn->produkcja_aktywna = true;
@@ -100,7 +106,6 @@ int main() {
     cout << "2 - Zatrzymaj prace magazynu\n";
     cout << "3 - Zatrzymaj dostawy\n";
     cout << "4 - Koniec pracy calej fabryki\n";
-    cout << "0 - Wyjscie (Ctrl+C)\n";
     cout << "------------\n";
     
     int opcja;
@@ -123,10 +128,6 @@ int main() {
             cout << "\n[DYREKTOR] >>> POLECENIE 4: KONIEC PRACY SYSTEMU <<<\n";
             sem_unlock(semid);
             sleep(1);
-            break;
-        }
-        else if (opcja == 0) {
-            sem_unlock(semid);
             break;
         }
         else {
