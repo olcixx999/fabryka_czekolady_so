@@ -9,6 +9,24 @@ using namespace std;
 
 vector<pid_t> dzieci;
 
+bool wstaw_do_kolejki(Kolejka* k, char typ) {
+    if (k->ilosc_sztuk >= k->max_sztuk) {
+        return false;
+    }
+
+    int index_bajtowy = k->head * k->rozmiar_elementu;
+
+    for (int i = 0; i < k->rozmiar_elementu; i++) {
+        k->dane[index_bajtowy + i] = typ;
+    }
+
+    k->head = (k->head + 1) % k->max_sztuk;
+    
+    k->ilosc_sztuk++;
+    
+    return true;
+}
+
 void proces_dostawcy(char typ) {
     int shmid = shmget(SHM_KEY, sizeof(Magazyn), 0666);
     if (shmid == -1) sprawdz_blad(-1, "shmget (dostawca)");
@@ -21,11 +39,7 @@ void proces_dostawcy(char typ) {
 
     srand(time(NULL) ^ getpid());
 
-    int rozmiar = 1;
-    if (typ == 'C') rozmiar = 2;
-    if (typ == 'D') rozmiar = 3;
-
-    printf("[DOSTAWCA %c] Gotowy do pracy (PID: %d, Rozmiar: %d)\n", typ, getpid(), rozmiar);
+    printf("[DOSTAWCA %c] Gotowy. Rozmiar elem: %d bajty.\n", typ, (typ=='C'?2:(typ=='D'?3:1)));
 
     while (true) {
 
@@ -48,54 +62,21 @@ void proces_dostawcy(char typ) {
 
         sem_lock(semid);
 
-        int pojemnosc = magazyn->pojemnosc_max;
-        int max_sztuk = 0;
-        int obecna_ilosc = 0;
-
+        Kolejka* moja_kolejka = nullptr;
         switch(typ) {
-            case 'A': 
-                max_sztuk = (int)(pojemnosc * 0.30); 
-                obecna_ilosc = magazyn->A; 
-                break;
-            case 'B': 
-                max_sztuk = (int)(pojemnosc * 0.30); 
-                obecna_ilosc = magazyn->B; 
-                break;
-            case 'C': 
-                max_sztuk = (int)((pojemnosc * 0.20) / 2); 
-                obecna_ilosc = magazyn->C; 
-                break;
-            case 'D': 
-                max_sztuk = (int)((pojemnosc * 0.15) / 3); 
-                obecna_ilosc = magazyn->D; 
-                break;
+            case 'A': moja_kolejka = &magazyn->A; break;
+            case 'B': moja_kolejka = &magazyn->B; break;
+            case 'C': moja_kolejka = &magazyn->C; break;
+            case 'D': moja_kolejka = &magazyn->D; break;
         }
 
-        if (max_sztuk < 1) max_sztuk = 1;
-
-        bool jest_miejsce = (magazyn->zajete_miejsce + rozmiar <= magazyn->pojemnosc_max);
-        
-        bool limit_ok = (obecna_ilosc < max_sztuk);
-
-        if (jest_miejsce && limit_ok) {
-            
-            switch(typ) {
-                case 'A': magazyn->A++; break;
-                case 'B': magazyn->B++; break;
-                case 'C': magazyn->C++; break;
-                case 'D': magazyn->D++; break;
-            }
-
-            magazyn->zajete_miejsce += rozmiar;
-
+        if (wstaw_do_kolejki(moja_kolejka, typ)) {
             Raport msg;
             msg.mtype = 1;
-            sprintf(msg.tekst, "[DOSTAWDA %c] Dostarczono towar. Stan magazynu: %d/%d", 
-                         typ, magazyn->zajete_miejsce, magazyn->pojemnosc_max);
-
+            sprintf(msg.tekst, "[DOSTAWCA %c] Dostarczono. Stan segmentu: %d/%d szt (Head: %d)", 
+                    typ, moja_kolejka->ilosc_sztuk, moja_kolejka->max_sztuk, moja_kolejka->head);
             msgsnd(msgid, &msg, sizeof(msg.tekst), 0);
         } else {
-
         }
 
         sem_unlock(semid);
@@ -127,10 +108,7 @@ int main() {
         }
     }
 
-    while (true) {
-        int status;
-        if (wait(&status) == -1) break;
-    }
+    while (wait(NULL) > 0);
 
     printf("[KIEROWNIK DOSTAW] Wszyscy dostawcy zakończyli pracę.\n");
     return 0;

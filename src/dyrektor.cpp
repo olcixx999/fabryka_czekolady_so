@@ -55,17 +55,11 @@ int main() {
     int msgid = msgget(MSG_KEY, IPC_CREAT | 0666);
     sprawdz_blad(msgid, "msgget");
 
-    if (wczytaj_stan(magazyn)) {
-        cout << "[DYREKTOR] Wznowiono pracę z zapisanym stanem:\n";
-        cout << "   A: " << magazyn->A << ", B: " << magazyn->B 
-             << ", C: " << magazyn->C << ", D: " << magazyn->D 
-             << " | Zajęte: " << magazyn->zajete_miejsce << "/" << magazyn->pojemnosc_max << endl;
-    } else {
-        cout << "[DYREKTOR] Brak pliku zapisu. Inicjalizacja pustego magazynu.\n";
-        magazyn->A = 0; magazyn->B = 0; magazyn->C = 0; magazyn->D = 0;
-        magazyn->zajete_miejsce = 0;
-        magazyn->pojemnosc_max = POJEMNOSC_MAGAZYNU;
-    }
+    cout << "[DYREKTOR] Inicjalizacja buforów pamięci..." << endl;
+    inicjalizuj_kolejke(&magazyn->A, 1);
+    inicjalizuj_kolejke(&magazyn->B, 1);
+    inicjalizuj_kolejke(&magazyn->C, 2);
+    inicjalizuj_kolejke(&magazyn->D, 3);
 
     magazyn->fabryka_dziala = true;
     magazyn->dostawy_aktywne = true;
