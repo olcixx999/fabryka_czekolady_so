@@ -1,6 +1,5 @@
 #include "common.h"
 #include <iostream>
-#include <csignal>
 #include <sys/wait.h>
 #include <thread>
 
@@ -55,11 +54,19 @@ int main() {
     int msgid = msgget(MSG_KEY, IPC_CREAT | 0666);
     sprawdz_blad(msgid, "msgget");
 
-    cout << "[DYREKTOR] Inicjalizacja buforów pamięci..." << endl;
-    inicjalizuj_kolejke(&magazyn->A, 1);
-    inicjalizuj_kolejke(&magazyn->B, 1);
-    inicjalizuj_kolejke(&magazyn->C, 2);
-    inicjalizuj_kolejke(&magazyn->D, 3);
+    if (wczytaj_stan(magazyn)) {
+        cout << "[DYREKTOR] Wznowiono pracę. Stan surowców:\n";
+        cout << "   A: " << magazyn->A.ilosc_sztuk << " szt.\n";
+        cout << "   B: " << magazyn->B.ilosc_sztuk << " szt.\n";
+        cout << "   C: " << magazyn->C.ilosc_sztuk << " szt.\n";
+        cout << "   D: " << magazyn->D.ilosc_sztuk << " szt.\n";
+    } else {
+        cout << "[DYREKTOR] Brak pliku zapisu lub błąd. Inicjalizacja pustego magazynu.\n";
+        inicjalizuj_kolejke(&magazyn->A, 1);
+        inicjalizuj_kolejke(&magazyn->B, 1);
+        inicjalizuj_kolejke(&magazyn->C, 2);
+        inicjalizuj_kolejke(&magazyn->D, 3);
+    }
 
     magazyn->fabryka_dziala = true;
     magazyn->dostawy_aktywne = true;
@@ -118,6 +125,7 @@ int main() {
             cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 3: KONIEC DOSTAW <<<\n";
         }
         else if (opcja == 4) {
+            zapisz_stan(magazyn);
             magazyn->fabryka_dziala = false;
             cout << "\n[DYREKTOR] >>> POLECENIE 4: KONIEC PRACY SYSTEMU <<<\n";
             sem_unlock(semid);
