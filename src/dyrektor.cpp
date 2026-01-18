@@ -1,13 +1,13 @@
 #include "common.h"
 #include <iostream>
 #include <sys/wait.h>
-#include <thread>
 
 using namespace std;
 
 pid_t pid_kierownik_dostaw = 0;
 pid_t pid_pracownik1 = 0;
 pid_t pid_pracownik2 = 0;
+pid_t pid_sekretarka = 0;
 bool system_dziala = true;
 
 void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
@@ -19,6 +19,7 @@ void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
     if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGTERM);
     if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGTERM);
     if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGTERM);
+    if (pid_sekretarka > 0) kill(pid_sekretarka, SIGTERM);
     
     while (wait(NULL) > 0);
     
@@ -38,6 +39,19 @@ void obsluga_komunikatow(int msgid) {
             cout << "RAPORT: " << msg.tekst << endl;
         }
     }
+}
+
+void proces_sekretarki(int msgid) {
+    Raport msg;
+    while(true) {
+        if (msgrcv(msgid, &msg, sizeof(msg.tekst), 0, 0) != -1) {
+            cout << "RAPORT: " << msg.tekst << endl;
+        }
+        else {
+            break; 
+        }
+    }
+    exit(0);
 }
 
 int main() {
@@ -98,8 +112,10 @@ int main() {
     }
     cout << "[DYREKTOR] Uruchomiono Pracownika 2 (PID: " << pid_pracownik2 << ")" << endl;
     
-    thread t_raporty(obsluga_komunikatow, msgid);
-    t_raporty.detach();
+    pid_sekretarka = fork();
+    if (pid_sekretarka == 0) {
+        proces_sekretarki(msgid);
+    }
 
     cout << "[DYREKTOR] System działa.\n";
     cout << "--- MENU ---\n";
