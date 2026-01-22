@@ -1,160 +1,159 @@
 #include "common.h"
-#include <iostream>
 #include <sys/wait.h>
 
 using namespace std;
 
+int g_shmid = 0;
+int g_semid = 0;
+Magazyn* g_magazyn = nullptr;
+
 pid_t pid_kierownik_dostaw = 0;
 pid_t pid_pracownik1 = 0;
 pid_t pid_pracownik2 = 0;
-pid_t pid_sekretarka = 0;
-bool system_dziala = true;
 
-void sprzatanie_i_wyjscie(int shmid, int semid, int msgid, Magazyn* mag) {
-    system_dziala = false;
-    cout << "\n[DYREKTOR] Sprzątanie fabryki..." << endl;
-
-    sleep(1);
-
-    if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGTERM);
-    if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGTERM);
-    if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGTERM);
-    if (pid_sekretarka > 0) kill(pid_sekretarka, SIGTERM);
+void sprzatanie_i_wyjscie() {
+    if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGKILL);
+    if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGKILL);
+    if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGKILL);
     
     while (wait(NULL) > 0);
+
+    if (g_magazyn != nullptr) shmdt(g_magazyn);
+    if (g_shmid > 0) shmctl(g_shmid, IPC_RMID, nullptr);
+    if (g_semid > 0) semctl(g_semid, 0, IPC_RMID);
+
+    cout << KOLOR_SYS << "[SYSTEM] Zasoby zwolnione. Koniec programu." << KOLOR_RESET << "\n";
+    exit(0);
+}
+
+void handle_sigint(int sig) {
+    (void)sig;
+    cout << "\n" << KOLOR_ERR << "[DYREKTOR] Otrzymano SIGINT. Zapis stanu i koniec..." << KOLOR_RESET << "\n";
     
-    shmdt(mag);
-    shmctl(shmid, IPC_RMID, nullptr);
-    semctl(semid, 0, IPC_RMID);
-    msgctl(msgid, IPC_RMID, nullptr);
-
-    cout << "[DYREKTOR] Koniec pracy.\n";
-    exit(0);
+    if (g_magazyn != nullptr) {
+        zapisz_stan(g_magazyn);
+    }
+    
+    sprzatanie_i_wyjscie();
 }
 
-void obsluga_komunikatow(int msgid) {
-    Raport msg;
-    while(system_dziala) {
-        if (msgrcv(msgid, &msg, sizeof(msg.tekst), 0, 0) != -1) {
-            cout << "RAPORT: " << msg.tekst << endl;
-        }
+void handle_sigusr1(int sig) {
+    (void)sig;
+    if (g_magazyn != nullptr && g_semid > 0) {
+        char bufor[512];
+        sprintf(bufor, 
+            "\n*** [KONTROLA] OTRZYMANO SIGUSR1 ***\n"
+            "   Status fabryki: %s\n"
+            "   A: %d/%d\n"
+            "   B: %d/%d\n"
+            "   C: %d/%d\n"
+            "   D: %d/%d\n"
+            "************************************",
+            (g_magazyn->fabryka_dziala ? "AKTYWNA" : "ZATRZYMANA"),
+            g_magazyn->A.ilosc_sztuk, g_magazyn->A.max_sztuk,
+            g_magazyn->B.ilosc_sztuk, g_magazyn->B.max_sztuk,
+            g_magazyn->C.ilosc_sztuk, g_magazyn->C.max_sztuk,
+            g_magazyn->D.ilosc_sztuk, g_magazyn->D.max_sztuk
+        );
+        loguj_komunikat(g_semid, bufor, KOLOR_SYS);
     }
 }
 
-void proces_sekretarki(int msgid) {
-    Raport msg;
-    while(true) {
-        if (msgrcv(msgid, &msg, sizeof(msg.tekst), 0, 0) != -1) {
-            cout << "RAPORT: " << msg.tekst << endl;
-        }
-        else {
-            break; 
-        }
-    }
-    exit(0);
+void ustaw_semafor(int semid, int sem_num, int wartosc) {
+    semctl(semid, sem_num, SETVAL, wartosc);
 }
 
 int main() {
-    cout << "[DYREKTOR] Start systemu..." << endl;
+    FILE* f = fopen(PLIK_LOGU, "w");
+    if(f) { fprintf(f, "--- START SYMULACJI ---\n"); fclose(f); }
 
-    int shmid = shmget(SHM_KEY, sizeof(Magazyn), IPC_CREAT | 0666);
-    sprawdz_blad(shmid, "shmget");
-    Magazyn* magazyn = static_cast<Magazyn*>(shmat(shmid, nullptr, 0));
+    cout << KOLOR_DYR << "[DYREKTOR] Start systemu..." << KOLOR_RESET << endl;
+
+    signal(SIGINT,  handle_sigint);
+    signal(SIGUSR1, handle_sigusr1);
+
+    g_shmid = shmget(SHM_KEY, sizeof(Magazyn), IPC_CREAT | 0600);
+    sprawdz_blad(g_shmid, "shmget");
+    g_magazyn = static_cast<Magazyn*>(shmat(g_shmid, nullptr, 0));
     
-    int semid = semget(SEM_KEY, 1, IPC_CREAT | 0666);
-    sprawdz_blad(semid, "semget");
-    semctl(semid, 0, SETVAL, 1);
+    g_semid = semget(SEM_KEY, 10, IPC_CREAT | 0600);
+    sprawdz_blad(g_semid, "semget");
 
-    int msgid = msgget(MSG_KEY, IPC_CREAT | 0666);
-    sprawdz_blad(msgid, "msgget");
+    ustaw_semafor(g_semid, SEM_MUTEX, 1);
+    ustaw_semafor(g_semid, SEM_LOG, 1); 
 
-    if (wczytaj_stan(magazyn)) {
-        cout << "[DYREKTOR] Wznowiono pracę. Stan surowców:\n";
-        cout << "   A: " << magazyn->A.ilosc_sztuk << " szt.\n";
-        cout << "   B: " << magazyn->B.ilosc_sztuk << " szt.\n";
-        cout << "   C: " << magazyn->C.ilosc_sztuk << " szt.\n";
-        cout << "   D: " << magazyn->D.ilosc_sztuk << " szt.\n";
+    bool wczytano = wczytaj_stan(g_magazyn);
+
+    if (!wczytano) {
+        loguj_komunikat(g_semid, "[DYREKTOR] Inicjalizacja pustego magazynu.", KOLOR_DYR);
+        inicjalizuj_kolejke(&g_magazyn->A, 1);
+        inicjalizuj_kolejke(&g_magazyn->B, 1);
+        inicjalizuj_kolejke(&g_magazyn->C, 2);
+        inicjalizuj_kolejke(&g_magazyn->D, 3);
     } else {
-        cout << "[DYREKTOR] Brak pliku zapisu lub błąd. Inicjalizacja pustego magazynu.\n";
-        inicjalizuj_kolejke(&magazyn->A, 1);
-        inicjalizuj_kolejke(&magazyn->B, 1);
-        inicjalizuj_kolejke(&magazyn->C, 2);
-        inicjalizuj_kolejke(&magazyn->D, 3);
+        loguj_komunikat(g_semid, "[DYREKTOR] Wznowiono pracę z pliku.", KOLOR_DYR);
     }
 
-    magazyn->fabryka_dziala = true;
-    magazyn->dostawy_aktywne = true;
-    magazyn->produkcja_aktywna = true;
-    magazyn->magazyn_otwarty = true;
+    ustaw_semafor(g_semid, SEM_EMPTY_A, g_magazyn->A.max_sztuk - g_magazyn->A.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_FULL_A,  g_magazyn->A.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_EMPTY_B, g_magazyn->B.max_sztuk - g_magazyn->B.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_FULL_B,  g_magazyn->B.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_EMPTY_C, g_magazyn->C.max_sztuk - g_magazyn->C.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_FULL_C,  g_magazyn->C.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_EMPTY_D, g_magazyn->D.max_sztuk - g_magazyn->D.ilosc_sztuk);
+    ustaw_semafor(g_semid, SEM_FULL_D,  g_magazyn->D.ilosc_sztuk);
+
+    g_magazyn->fabryka_dziala = true;
+    g_magazyn->dostawy_aktywne = true;
+    g_magazyn->produkcja_aktywna = true;
+    g_magazyn->magazyn_otwarty = true;
 
     pid_kierownik_dostaw = fork();
-    if (pid_kierownik_dostaw == 0) {
-        execl("./dostawca", "dostawca", nullptr);
-        perror("Błąd execl dostawca");
-        exit(1);
-    }
-
-    cout << "[DYREKTOR] Uruchomiono Kierownika Dostaw (PID: " << pid_kierownik_dostaw << ")" << endl;
+    if (pid_kierownik_dostaw == 0) { execl("./dostawca", "dostawca", nullptr); exit(1); }
     
     pid_pracownik1 = fork();
-    if (pid_pracownik1 == 0) {
-        execl("./pracownik", "pracownik", "1", nullptr);
-        perror("Błąd execl pracownik 1");
-        exit(1);
-    }
-    cout << "[DYREKTOR] Uruchomiono Pracownika 1 (PID: " << pid_pracownik1 << ")" << endl;
+    if (pid_pracownik1 == 0) { execl("./pracownik", "pracownik", "1", nullptr); exit(1); }
 
     pid_pracownik2 = fork();
-    if (pid_pracownik2 == 0) {
-        execl("./pracownik", "pracownik", "2", nullptr);
-        perror("Błąd execl pracownik 2");
-        exit(1);
-    }
-    cout << "[DYREKTOR] Uruchomiono Pracownika 2 (PID: " << pid_pracownik2 << ")" << endl;
-    
-    pid_sekretarka = fork();
-    if (pid_sekretarka == 0) {
-        proces_sekretarki(msgid);
-    }
+    if (pid_pracownik2 == 0) { execl("./pracownik", "pracownik", "2", nullptr); exit(1); }
 
-    cout << "[DYREKTOR] System działa.\n";
-    cout << "--- MENU ---\n";
-    cout << "1 - Zatrzymaj produkcje\n";
-    cout << "2 - Zatrzymaj prace magazynu\n";
-    cout << "3 - Zatrzymaj dostawy\n";
-    cout << "4 - Koniec pracy calej fabryki\n";
-    cout << "------------\n";
+    cout << KOLOR_SYS << "[DYREKTOR] System gotowy (PID: " << getpid() << ")." << KOLOR_RESET << "\n";
+    cout << "--- MENU STEROWANIA ---\n";
+    cout << "1 - Stop produkcji\n";
+    cout << "2 - Zamknij magazyn\n";
+    cout << "3 - Stop dostaw\n";
+    cout << "4 - ZAPISZ STAN I ZAKONCZ\n";
     
     int opcja;
     while(cin >> opcja) {
-        sem_lock(semid);
+        sem_P(g_semid, SEM_MUTEX);
         if (opcja == 1) {
-            magazyn->produkcja_aktywna = false;
-            cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 1: STOP PRODUKCJI <<<\n";
+            g_magazyn->produkcja_aktywna = false;
+            loguj_komunikat(g_semid, "DYREKTOR: Zatrzymano produkcje (Polecenie 1)", KOLOR_DYR);
         }
         else if (opcja == 2) {
-            magazyn->magazyn_otwarty = false;
-            cout << "\n[DYREKTOR] >>> POLECENIE 2: ZAMKNIECIE MAGAZYNU <<<\n";
+            g_magazyn->magazyn_otwarty = false;
+            loguj_komunikat(g_semid, "DYREKTOR: Zamknieto magazyn (Polecenie 2)", KOLOR_DYR);
         }
         else if (opcja == 3) {
-            magazyn->dostawy_aktywne = false;
-            cout << "\n[DYREKTOR] >>> WYSŁANO POLECENIE 3: KONIEC DOSTAW <<<\n";
+            g_magazyn->dostawy_aktywne = false;
+            loguj_komunikat(g_semid, "DYREKTOR: Zatrzymano dostawy (Polecenie 3)", KOLOR_DYR);
         }
         else if (opcja == 4) {
-            zapisz_stan(magazyn);
-            magazyn->fabryka_dziala = false;
-            cout << "\n[DYREKTOR] >>> POLECENIE 4: KONIEC PRACY SYSTEMU <<<\n";
-            sem_unlock(semid);
-            sleep(1);
+            zapisz_stan(g_magazyn);
+            g_magazyn->fabryka_dziala = false;
+            loguj_komunikat(g_semid, "DYREKTOR: Koniec systemu (Polecenie 4)", KOLOR_DYR);
+            sem_V(g_semid, SEM_MUTEX);
+            //sleep(1);
             break;
         }
         else {
-            cout << "Nieznana opcja.\n";
+             cout << "Nieznana opcja.\n";
         }
-        sem_unlock(semid);
+        sem_V(g_semid, SEM_MUTEX);
         cout << "\nPodaj polecenie: ";
     }
     
-    sprzatanie_i_wyjscie(shmid, semid, msgid, magazyn);
+    sprzatanie_i_wyjscie();
     return 0;
 }

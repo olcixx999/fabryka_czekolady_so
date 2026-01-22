@@ -7,20 +7,38 @@
 #include <cstring>
 #include <cerrno>
 #include <csignal>
+#include <ctime>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include <sys/msg.h>
 #include <fstream>
 
 const int SHM_KEY = 0x1111;
 const int SEM_KEY = 0x2222;
-const int MSG_KEY = 0x3333;
 const char* PLIK_STANU = "stan_magazynu.bin";
+const char* PLIK_LOGU  = "raport_symulacji.txt";
 
 const int ROZMIAR_SEGMENTU = 100;
+
+const char* KOLOR_RESET   = "\033[0m";
+const char* KOLOR_DYR     = "\033[1;36m";
+const char* KOLOR_DOST    = "\033[1;32m";
+const char* KOLOR_PRAC    = "\033[1;33m";
+const char* KOLOR_SYS     = "\033[1;35m";
+const char* KOLOR_ERR     = "\033[1;31m";
+
+const int SEM_MUTEX = 0;   
+const int SEM_EMPTY_A = 1;
+const int SEM_FULL_A  = 2;
+const int SEM_EMPTY_B = 3;
+const int SEM_FULL_B  = 4;
+const int SEM_EMPTY_C = 5;
+const int SEM_FULL_C  = 6;
+const int SEM_EMPTY_D = 7;
+const int SEM_FULL_D  = 8;
+const int SEM_LOG     = 9; 
 
 struct Kolejka {
     char dane[ROZMIAR_SEGMENTU];
@@ -43,14 +61,11 @@ struct Magazyn {
     bool magazyn_otwarty;
 };
 
-struct Raport {
-    long mtype;
-    char tekst[256];
-};
-
 inline void sprawdz_blad(int wynik, const char* komunikat){
     if (wynik == -1){
+        std::cerr << KOLOR_ERR;
         std::perror(komunikat);
+        std::cerr << KOLOR_RESET;
         std::exit(EXIT_FAILURE);
     }
 }
@@ -60,9 +75,6 @@ inline void zapisz_stan(Magazyn* m) {
     if (plik.is_open()) {
         plik.write((char*)m, sizeof(Magazyn));
         plik.close();
-        std::cout << "[SYSTEM] Zapisano stan magazynu do pliku: " << PLIK_STANU << std::endl;
-    } else {
-        std::perror("[SYSTEM] Błąd zapisu do pliku");
     }
 }
 
@@ -71,7 +83,6 @@ inline bool wczytaj_stan(Magazyn* m) {
     if (plik.is_open()) {
         plik.read((char*)m, sizeof(Magazyn));
         plik.close();
-        std::cout << "[SYSTEM] Wczytano stan magazynu z pliku!" << std::endl;
         return true;
     }
     return false;
@@ -86,30 +97,44 @@ inline void inicjalizuj_kolejke(Kolejka* k, int rozmiar_el) {
     std::memset(k->dane, 0, ROZMIAR_SEGMENTU);
 }
 
-inline void sem_lock(int semid){
+inline void sem_P(int semid, int sem_num){
     struct sembuf operacja;
-    operacja.sem_num = 0;
+    operacja.sem_num = sem_num;
     operacja.sem_op = -1;
     operacja.sem_flg = 0;
 
-    if (semop(semid, &operacja, 1) == -1){
-        if (errno != EINTR && errno != EIDRM && errno != EINVAL) {
-            std::perror("Blad sem_lock");
-        }
+    while (semop(semid, &operacja, 1) == -1) {
+        if (errno == EINTR) continue;
+        if (errno != EIDRM && errno != EINVAL) std::perror("Blad sem_P");
+        break;
     }
 }
 
-inline void sem_unlock(int semid){
+inline void sem_V(int semid, int sem_num){
     struct sembuf operacja;
-    operacja.sem_num = 0;
+    operacja.sem_num = sem_num;
     operacja.sem_op = 1;
     operacja.sem_flg = 0;
 
-    if (semop(semid, &operacja, 1) == -1){
-        if (errno != EINTR && errno != EIDRM && errno != EINVAL) {
-            std::perror("Blad sem_unlock");
-        }
+    while (semop(semid, &operacja, 1) == -1) {
+        if (errno == EINTR) continue;
+        if (errno != EIDRM && errno != EINVAL) std::perror("Blad sem_V");
+        break;
     }
+}
+
+inline void loguj_komunikat(int semid, const char* komunikat, const char* kolor = KOLOR_SYS) {
+    sem_P(semid, SEM_LOG); 
+
+    std::cout << kolor << komunikat << KOLOR_RESET << std::endl;
+
+    FILE* plik = std::fopen(PLIK_LOGU, "a");
+    if (plik != nullptr) {
+        std::fprintf(plik, "%s\n", komunikat);
+        std::fclose(plik);
+    }
+
+    sem_V(semid, SEM_LOG); 
 }
 
 #endif

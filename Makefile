@@ -18,6 +18,6 @@ pracownik: $(SRC_DIR)/pracownik.cpp include/common.h
 	$(CXX) $(CXXFLAGS) -o pracownik $(SRC_DIR)/pracownik.cpp
 
 clean:
-	rm -f $(TARGETS) *.o raport.txt stan_magazynu.dat
+	rm -f $(TARGETS) *.o raport_symulacji.txt stan_magazynu.bin
 	rm -rf *.dSYM
 	
