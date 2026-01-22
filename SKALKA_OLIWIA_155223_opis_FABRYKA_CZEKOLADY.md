@@ -174,8 +174,10 @@ Poniżej znajdują się odnośniki do kluczowych fragmentów kodu realizujących
 
 ### a. Tworzenie i obsługa plików
 Operacje zapisu logów oraz serializacji stanu magazynu.
-* **`fopen()`, `fprintf()`, `fclose()`**: [LINK DO GITHUB - plik: common.h, funkcja: loguj_komunikat()]
-* **`ofstream::write`**: [LINK DO GITHUB - plik: common.h, funkcja: zapisz_stan()]
+* **`fopen()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L131
+* **`fprintf()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L133
+* **`fclose()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L134
+* **`ofstream::write`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L76
 
 ### b. Tworzenie procesów
 Zarządzanie cyklem życia procesów w modelu Unix.
