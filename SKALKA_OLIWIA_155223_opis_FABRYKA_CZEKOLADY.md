@@ -99,6 +99,11 @@ Projekt spełnia wszystkie wymagania podstawowe:
 * **Obsługa Sygnałów:**
     * `SIGINT` (Ctrl+C): Powoduje bezpieczne zatrzymanie systemu, zapisanie stanu magazynu i zwolnienie zasobów IPC.
     * `SIGUSR1`: Niestandardowy sygnał wywołujący "Niezapowiedzianą kontrolę" – wypisuje aktualny stan magazynu na ekran bez przerywania symulacji.
+      Aby go wywołać, należy w osobnej konsoli wpisać:
+      ```bash
+      kill -USR1 [PID_DYREKTORA]
+      ```
+      *(PID jest wyświetlany w pierwszej linii logów po uruchomieniu Dyrektora).*
 * **Persystencja Danych:** Stan magazynu jest zapisywany do pliku binarnego (`stan_magazynu.bin`) przy zamknięciu i automatycznie odtwarzany przy ponownym uruchomieniu dyrektora.
 * **Logowanie Hybrydowe:** Funkcja `loguj_komunikat` zapisuje dane jednocześnie na ekran (z kolorami) i do pliku tekstowego (czysty tekst).
 

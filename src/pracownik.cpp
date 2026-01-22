@@ -17,11 +17,11 @@ int main(int argc, char* argv[]) {
 
     //srand(time(NULL) ^ getpid());
 
-    int shmid = shmget(SHM_KEY, sizeof(Magazyn), 0666);
+    int shmid = shmget(SHM_KEY, sizeof(Magazyn), 0600);
     if (shmid == -1) sprawdz_blad(-1, "shmget");
     Magazyn* magazyn = static_cast<Magazyn*>(shmat(shmid, nullptr, 0));
     
-    int semid = semget(SEM_KEY, 10, 0666);
+    int semid = semget(SEM_KEY, 10, 0600);
 
     char bufor[256];
 
