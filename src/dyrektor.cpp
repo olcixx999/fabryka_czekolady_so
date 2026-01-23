@@ -123,34 +123,68 @@ int main() {
     cout << "2 - Zamknij magazyn\n";
     cout << "3 - Stop dostaw\n";
     cout << "4 - ZAPISZ STAN I ZAKONCZ\n";
+    cout << "\nPodaj polecenie: ";
     
     int opcja;
     while(cin >> opcja) {
         sem_P(g_semid, SEM_MUTEX);
+        
         if (opcja == 1) {
             g_magazyn->produkcja_aktywna = false;
             loguj_komunikat(g_semid, "DYREKTOR: Zatrzymano produkcje (Polecenie 1)", KOLOR_DYR);
+            sem_V(g_semid, SEM_MUTEX);
+            
+            waitpid(pid_pracownik1, NULL, 0);
+            waitpid(pid_pracownik2, NULL, 0);
         }
         else if (opcja == 2) {
             g_magazyn->magazyn_otwarty = false;
             loguj_komunikat(g_semid, "DYREKTOR: Zamknieto magazyn (Polecenie 2)", KOLOR_DYR);
+            sem_V(g_semid, SEM_MUTEX);
+            
+            waitpid(pid_kierownik_dostaw, NULL, 0);
+            waitpid(pid_pracownik1, NULL, 0);
+            waitpid(pid_pracownik2, NULL, 0);
         }
         else if (opcja == 3) {
             g_magazyn->dostawy_aktywne = false;
             loguj_komunikat(g_semid, "DYREKTOR: Zatrzymano dostawy (Polecenie 3)", KOLOR_DYR);
+            sem_V(g_semid, SEM_MUTEX);
+            
+            waitpid(pid_kierownik_dostaw, NULL, 0);
         }
         else if (opcja == 4) {
-            zapisz_stan(g_magazyn);
+            loguj_komunikat(g_semid, "[DYREKTOR] Koniec systemu (Polecenie 4)", KOLOR_DYR);
+            
             g_magazyn->fabryka_dziala = false;
-            loguj_komunikat(g_semid, "DYREKTOR: Koniec systemu (Polecenie 4)", KOLOR_DYR);
+            g_magazyn->dostawy_aktywne = false;
+
             sem_V(g_semid, SEM_MUTEX);
-            //sleep(1);
+
+            if (pid_kierownik_dostaw > 0) kill(pid_kierownik_dostaw, SIGTERM);
+            if (pid_pracownik1 > 0) kill(pid_pracownik1, SIGTERM);
+            if (pid_pracownik2 > 0) kill(pid_pracownik2, SIGTERM);
+
+            waitpid(pid_kierownik_dostaw, NULL, 0);
+            waitpid(pid_pracownik1, NULL, 0);
+            waitpid(pid_pracownik2, NULL, 0);
+
+            zapisz_stan(g_magazyn);
+            loguj_komunikat(g_semid, "[SYSTEM] Stan magazynu zapisany do pliku.", KOLOR_SYS);
+            
+            cout << "Surowiec A: " << g_magazyn->A.ilosc_sztuk << " / " << g_magazyn->A.max_sztuk << " sztuk" << endl;
+            cout << "Surowiec B: " << g_magazyn->B.ilosc_sztuk << " / " << g_magazyn->B.max_sztuk << " sztuk" << endl;
+            cout << "Surowiec C: " << g_magazyn->C.ilosc_sztuk << " / " << g_magazyn->C.max_sztuk << " sztuk" << endl;
+            cout << "Surowiec D: " << g_magazyn->D.ilosc_sztuk << " / " << g_magazyn->D.max_sztuk << " sztuk" << endl;
+
+            sprzatanie_i_wyjscie();
             break;
         }
         else {
+             sem_V(g_semid, SEM_MUTEX);
              cout << "Nieznana opcja.\n";
         }
-        sem_V(g_semid, SEM_MUTEX);
+        
         cout << "\nPodaj polecenie: ";
     }
     

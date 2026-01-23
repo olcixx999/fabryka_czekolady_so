@@ -38,6 +38,10 @@ make clean
 ```bash
 make
 ```
+**Aby uruchomić projekt, wpisz w terminalu:**
+```bash
+./dyrektor
+```
 
 ## 1. Ogólny opis i założenia projektowe
 
@@ -76,6 +80,10 @@ System został zaprojektowany w architekturze wieloprocesowej, gdzie poszczegól
     * **Logika Konsumenta:** Każdy pracownik w nieskończonej pętli próbuje skompletować wymagany zestaw składników (dla Typu 1: A+B+C, dla Typu 2: A+B+D).
     * **Zapobieganie Zakleszczeniom:** Aby uniknąć deadlocka, zaimplementowano tu ścisłą kolejność pobierania zasobów. Pracownik zawsze blokuje semafory `FULL` w kolejności alfabetycznej (np. najpierw A, potem B, na końcu C/D).
     * **Produkcja:** Po pobraniu składników z bufora cyklicznego (aktualizacja wskaźnika `tail`), proces symuluje czas produkcji (`sleep`) i loguje wykonanie zadania, po czym zwalnia miejsce w magazynie (operacja `V` na semaforach `EMPTY`).
+
+4.  **Weryfikacja i Raportowanie (`pokaz_stan.cpp`)**
+    * **Podgląd Stanu (`./pokaz_stan`):** Zaimplementowano dodatkowe narzędzie, które odczytuje binarny zrzut pamięci (`stan_magazynu.bin`). Pozwala ono w przejrzysty sposób wyświetlić dokładną ilość surowców (A, B, C, D) oraz status flag systemowych, co umożliwia weryfikację poprawności bilansu po zakończeniu symulacji.
+    * **Logowanie Historii:** Wszystkie operacje są na bieżąco zapisywane w pliku tekstowym `raport_symulacji.txt`. Plik ten zawiera pełną historię zdarzeń oraz **końcowy stan magazynu**, a jego analiza (w połączeniu z odczytem binarnym) pozwala potwierdzić zgodność stanu końcowego z wykonanymi operacjami.
 
 ### Mechanizm Synchronizacji (10 Semaforów)
 Aby uniknąć aktywnego oczekiwania (busy waiting) i wyścigów (race conditions), zastosowano zestaw 10 semaforów:
@@ -128,6 +136,10 @@ Oraz zawiera dodatkowe funkcjonalności:
 3.  **Niewystarczająca struktura danych (Int vs Ring Buffer):**
     * *Problem:* W początkowej fazie projektu magazyn był reprezentowany jedynie przez zmienną typu `int` (licznik sztuk). Rozwiązanie to okazało się niewystarczające, ponieważ nie pozwalało na identyfikację konkretnych jednostek towaru ani na realizację kolejki FIFO (First In, First Out), co jest kluczowe dla poprawnej symulacji przepływu materiałów.
     * *Rozwiązanie:* Przebudowano strukturę pamięci dzielonej, zastępując proste liczniki **buforem cyklicznym (Ring Buffer)** dla każdego surowca. Zaimplementowano wskaźniki `head` (dla dostawców) i `tail` (dla pracowników), co pozwala na fizyczne przechowywanie danych w tablicy i ich pobieranie w tej samej kolejności, w jakiej zostały wyprodukowane.
+
+4.  **Niespójność danych między raportem a plikiem stanu (Race Condition przy zamykaniu):**
+    * *Problem:* Podczas weryfikacji końcowej zauważono rozbieżność w bilansie: logi tekstowe (`raport_symulacji.txt`) wskazywały np. na dostarczenie 1768 sztuk towaru, podczas gdy odczyt pliku binarnego (`stan_magazynu.bin`) po restarcie pokazywał stan odpowiadający 1767 sztukom. Przyczyną była niepoprawna kolejność operacji w procedurze kończenia pracy (Polecenie 4). Dyrektor wykonywał zrzut pamięci do pliku *zanim* upewnił się, że procesy potomne zakończyły działanie. W rezultacie, w ułamku sekundy między zapisem pliku a zabiciem procesów, Dostawca zdążył jeszcze zmodyfikować pamięć i wypisać log, co nie zostało utrwalone w pliku.
+    * *Rozwiązanie:* Zmieniono logikę zamykania systemu. Wprowadzono mechanizm "wyciszania": najpierw Dyrektor wysyła sygnały zakończenia i czeka na potwierdzenie śmierci wszystkich procesów potomnych za pomocą funkcji `waitpid()`. Dopiero gdy w systemie nie ma aktywnych procesów modyfikujących pamięć, następuje bezpieczny zapis stanu (`zapisz_stan`) i zwolnienie zasobów. Gwarantuje to idealną zgodność logów z zapisanym stanem.
 
 ### Scenariusze Testowe i Weryfikacja Działania
 

@@ -4,7 +4,7 @@ CXXFLAGS = -Wall -Wextra -std=c++17 -Iinclude
 
 SRC_DIR = src
 
-TARGETS = dyrektor dostawca pracownik
+TARGETS = dyrektor dostawca pracownik pokaz_stan
 
 all: $(TARGETS)
 
@@ -16,6 +16,9 @@ dostawca: $(SRC_DIR)/dostawca.cpp include/common.h
 
 pracownik: $(SRC_DIR)/pracownik.cpp include/common.h
 	$(CXX) $(CXXFLAGS) -o pracownik $(SRC_DIR)/pracownik.cpp
+
+pokaz_stan: $(SRC_DIR)/pokaz_stan.cpp include/common.h
+	$(CXX) $(CXXFLAGS) -o pokaz_stan $(SRC_DIR)/pokaz_stan.cpp
 
 clean:
 	rm -f $(TARGETS) *.o raport_symulacji.txt stan_magazynu.bin
