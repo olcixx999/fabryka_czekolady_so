@@ -82,8 +82,8 @@ System został zaprojektowany w architekturze wieloprocesowej, gdzie poszczegól
     * **Produkcja:** Po pobraniu składników z bufora cyklicznego (aktualizacja wskaźnika `tail`), proces symuluje czas produkcji (`sleep`) i loguje wykonanie zadania, po czym zwalnia miejsce w magazynie (operacja `V` na semaforach `EMPTY`).
 
 4.  **Weryfikacja i Raportowanie (`pokaz_stan.cpp`)**
-    * **Podgląd Stanu (`./pokaz_stan`):** Zaimplementowano dodatkowe narzędzie, które odczytuje binarny zrzut pamięci (`stan_magazynu.bin`). Pozwala ono w przejrzysty sposób wyświetlić dokładną ilość surowców (A, B, C, D) oraz status flag systemowych, co umożliwia weryfikację poprawności bilansu po zakończeniu symulacji.
-    * **Logowanie Historii:** Wszystkie operacje są na bieżąco zapisywane w pliku tekstowym `raport_symulacji.txt`. Plik ten zawiera pełną historię zdarzeń oraz **końcowy stan magazynu**, a jego analiza (w połączeniu z odczytem binarnym) pozwala potwierdzić zgodność stanu końcowego z wykonanymi operacjami.
+    * **Podgląd Stanu (`./pokaz_stan`):** Zaimplementowano dodatkowe narzędzie, które odczytuje binarny zrzut pamięci (`stan_magazynu.bin`). Pozwala ono w przejrzysty sposób wyświetlić dokładną ilość surowców (A, B, C, D), co umożliwia weryfikację poprawności bilansu po zakończeniu symulacji.
+    * **Logowanie Historii:** Wszystkie operacje są na bieżąco zapisywane w pliku tekstowym `raport_symulacji.txt`. Plik ten zawiera pełną historię zdarzeń oraz **końcowy stan magazynu**, a jego analiza pozwala potwierdzić zgodność stanu końcowego z wykonanymi operacjami.
 
 ### Mechanizm Synchronizacji (10 Semaforów)
 Aby uniknąć aktywnego oczekiwania (busy waiting) i wyścigów (race conditions), zastosowano zestaw 10 semaforów:
@@ -191,33 +191,33 @@ Poniżej znajdują się odnośniki do kluczowych fragmentów kodu realizujących
 
 ### a. Tworzenie i obsługa plików
 Operacje zapisu logów oraz serializacji stanu magazynu.
-* **`fopen()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L131
-* **`fprintf()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L133
-* **`fclose()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L134
-* **`ofstream::write`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/84d49dbbc3af37a552cbcf7ca3d378e96ce93584/include/common.h#L76
+* **`fopen()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L131
+* **`fprintf()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L133
+* **`fclose()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L134
+* **`write()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L76
+* **`read()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L84
 
 ### b. Tworzenie procesów
 Zarządzanie cyklem życia procesów w modelu Unix.
-* **`fork()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L111
-* **`execl()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L112
-* **`wait()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L19
-* **`exit()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L26
+* **`fork()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L111
+* **`execl()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L112
+* **`wait()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dostawca.cpp#L74
+* **`exit()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dostawca.cpp#L61
 
 ### d. Obsługa sygnałów
 Mechanizmy asynchronicznego powiadamiania procesów.
-* **`signal()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L72
-* **`kill()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L15
-* **Handler SIGINT**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L29
+* **`signal()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L72
+* **`kill()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L164
 
 ### e. Synchronizacja procesów (Semafory System V)
 Implementacja 10 semaforów do sterowania dostępem.
-* **`semget()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L79
-* **`semctl()` (SETVAL)**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L63
-* **`semop()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/include/common.h#L106
+* **`semget()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L79
+* **`semctl()` (SETVAL)**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L23
+* **`semop()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/include/common.h#L106
 
 ### g. Segmenty pamięci dzielonej
 Współdzielenie stanu magazynu między procesami.
-* **`shmget()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L75
-* **`shmat()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L77
-* **`shmdt()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L21
-* **`shmctl()` (IPC_RMID)**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L22
+* **`shmget()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L75
+* **`shmat()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L77
+* **`shmdt()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L21
+* **`shmctl()` (IPC_RMID)**: https://github.com/olcixx999/fabryka_czekolady_so/blob/c4cae1f70ccfb9ed32a116333b2373469afd6e7f/src/dyrektor.cpp#L22
