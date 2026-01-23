@@ -205,7 +205,7 @@ Zarządzanie cyklem życia procesów w modelu Unix.
 
 ### d. Obsługa sygnałów
 Mechanizmy asynchronicznego powiadamiania procesów.
-* **`signal()`**: (https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L72)
+* **`signal()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L72
 * **`kill()`**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L15
 * **Handler SIGINT**: https://github.com/olcixx999/fabryka_czekolady_so/blob/85b12232fc0c61dec80fc4299f0e879c25a6ab94/src/dyrektor.cpp#L29
 
